@@ -1,3 +1,4 @@
+/* eslint-disable array-callback-return */
 import { use, useEffect, useState } from 'react';
 import { lotLayer } from '../layers';
 import Query from '@arcgis/core/rest/support/Query';
@@ -16,64 +17,83 @@ import {
   CalciteChip,
   CalciteAvatar,
 } from '@esri/calcite-components-react';
-
-import { ArcgisMap } from '@arcgis/map-components/dist/components/arcgis-map';
+import {
+  barangayField,
+  lotStatusField,
+  municipalityField,
+  lotStatusQuery,
+  chart_width,
+} from '../uniqueValues';
+MyContext;
+import { ArcgisScene } from '@arcgis/map-components/dist/components/arcgis-scene';
+import '../index.css';
+import '../App.css';
 import { MyContext } from '../contexts/MyContext';
 
+// Zoom in to selected lot from expropriation list
 let highlightSelect: any;
 function resultClickHandler(event: any) {
-  const arcgisMap = document.querySelector('arcgis-map') as ArcgisMap;
+  const arcgisScene = document.querySelector('arcgis-scene') as ArcgisScene;
   const queryExtent = new Query({
     objectIds: [event.target.value],
   });
-
   lotLayer.queryExtent(queryExtent).then((result: any) => {
     result.extent &&
-      arcgisMap?.goTo({
+      arcgisScene?.goTo({
         target: result.extent,
         speedFactor: 2,
         zoom: 17,
       });
   });
 
-  arcgisMap?.whenLayerView(lotLayer).then((layerview: any) => {
+  arcgisScene?.whenLayerView(lotLayer).then((layerView: any) => {
     highlightSelect && highlightSelect.remove();
-    highlightSelect = layerview.highlight([event.target.value]);
+    highlightSelect = layerView.highlight([event.target.value]);
 
-    arcgisMap?.view.on('click', () => {
-      layerview.filter = null;
+    arcgisScene?.view.on('click', () => {
+      layerView.filter = null;
       highlightSelect.remove();
     });
   });
 }
 
-export default function ExpropriationList() {
+const ExpropriationList = () => {
   const { municipals, barangays } = use(MyContext);
 
-  const [exproItem, setExproItem] = useState<any>();
-  const queryMunicipality = `"Municipality" = '` + municipals + "'";
-  const queryBarangay = `"Barangay" = '` + barangays + "'";
+  const municipal = municipals;
+  const barangay = barangays;
+
+  // Obtain Status number for 'For Expropriation'
+  const find = lotStatusQuery.filter((e) => e.category.includes('Expropriation'));
+  const statusExproValue = find[0]?.value;
+
+  const [exproItem, setExproItem] = useState<undefined | any>([]);
+  const queryMunicipality = `${municipalityField} = '` + municipal + "'";
+  const queryBarangay = `${barangayField} = '` + barangay + "'";
   const queryMunicipalBarangay = queryMunicipality + ' AND ' + queryBarangay;
-  const queryExpro = `"StatusLA" = 7`;
+  // const queryExpro = `${lotStatusField} = 7`;
+  const queryExpro = `${lotStatusField} = ${statusExproValue}`;
 
   useEffect(() => {
     const query = lotLayer.createQuery();
-
-    if (!municipals) {
+    query.outFields = ['*'];
+    if (!municipal) {
       query.where = queryExpro;
-    } else if (municipals && !barangays) {
+    } else if (municipal && !barangay) {
       query.where = queryMunicipality + ' AND ' + queryExpro;
-    } else if (barangays) {
+    } else if (barangay) {
       query.where = queryMunicipalBarangay + ' AND ' + queryExpro;
     }
 
+    query.returnGeometry = true;
     lotLayer.queryFeatures(query).then((result: any) => {
+      // eslint-disable-next-line array-callback-return
       result.features.map((feature: any, index: any) => {
         const attributes = feature.attributes;
-        const lotid = attributes['LotID'];
-        const cp = attributes['CP'];
-        const municipal = attributes['Municipality'];
-        const landowner = attributes['LandOwner'];
+        const lotid = attributes.LotID;
+        const cp = attributes.CP;
+        const municipal = attributes.Municipality;
+        const landowner = attributes.LandOwner;
         const objectid = attributes.OBJECTID;
         const id = index;
         setExproItem([]);
@@ -90,7 +110,7 @@ export default function ExpropriationList() {
         ]);
       });
     });
-  }, [municipals, barangays]);
+  }, [municipal, barangay]);
 
   return (
     <>
@@ -98,7 +118,7 @@ export default function ExpropriationList() {
         id="result-list"
         label="exproListLabel"
         displayMode="nested"
-        style={{ width: '26vw' }}
+        style={{ width: chart_width }}
       >
         {exproItem && // Extract unique objects from the array
           exproItem
@@ -128,4 +148,6 @@ export default function ExpropriationList() {
       </CalciteList>
     </>
   );
-}
+};
+
+export default ExpropriationList;

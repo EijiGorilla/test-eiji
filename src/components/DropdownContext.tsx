@@ -1,39 +1,72 @@
-import { useState, useEffect, use } from 'react';
+import { useEffect, useState, use } from 'react';
 import Select from 'react-select';
-import { lotLayer } from '../layers';
-
-import GenerateDropdownData from 'npm-dropdown-package';
+import '../index.css';
+import '../App.css';
+import { getMuniciaplityBarangayPair } from '../Query';
 import { MyContext } from '../contexts/MyContext';
 
-export default function DropdownContext() {
-  const { updateMunicipals, updateBarangays } = use(MyContext); // for data sharing
-  const [municipal, setMunicipal] = useState<any>(); //initial list for when opening the smart map
-  const [municipalSelected, setMunicipalSelected] = useState<any>(null);
+export default function DropdownData() {
+  const { updateMunicipals, updateBarangays } = use(MyContext);
+
+  const [initMunicipalBarangay, setInitMunicipalBarangay] = useState([
+    {
+      municipality: '',
+      barangay: [
+        {
+          name: '',
+        },
+      ],
+    },
+  ]);
+  const [municipalitySelected, setMunicipalitySelected] = useState(null);
+
   const [barangaySelected, setBarangaySelected] = useState(null);
-  const [barangayList, setBarangayList] = useState<any>([]);
+  const [barangayList, setBarangayList] = useState([]);
 
   useEffect(() => {
-    const dropdownData = new GenerateDropdownData([lotLayer], ['Municipality', 'Barangay']);
-
-    dropdownData.dropDownQuery().then((response: any) => {
-      setMunicipal(response);
+    getMuniciaplityBarangayPair().then((response: any) => {
+      setInitMunicipalBarangay(response);
     });
   }, []);
 
+  // handle change event of the Municipality dropdown
   const handleMunicipalityChange = (obj: any) => {
-    console.log(obj);
-    setMunicipalSelected(obj);
-    updateMunicipals(obj.field1);
-    updateBarangays(undefined);
-    setBarangayList(obj.field2);
+    setMunicipalitySelected(obj);
+    setBarangayList(obj.barangay);
     setBarangaySelected(null);
+    updateMunicipals(obj.municipality);
+    updateBarangays(undefined);
   };
 
+  // handle change event of the barangay dropdownff
   const handleBarangayChange = (obj: any) => {
     setBarangaySelected(obj);
     updateBarangays(obj.name);
   };
 
+  return (
+    <>
+      <DropdownListDisplay
+        handleMunicipalityChange={handleMunicipalityChange}
+        handleBarangayChange={handleBarangayChange}
+        municipalitySelected={municipalitySelected}
+        initMunicipalBarangay={initMunicipalBarangay}
+        barangaySelected={barangaySelected}
+        barangayList={barangayList}
+      ></DropdownListDisplay>
+    </>
+  );
+}
+
+export function DropdownListDisplay({
+  handleMunicipalityChange,
+  handleBarangayChange,
+  municipalitySelected,
+  initMunicipalBarangay,
+  barangaySelected,
+  barangayList,
+}: any) {
+  // Style CSS
   const customstyles = {
     option: (styles: any, { isFocused, isSelected }: any) => {
       // const color = chroma(data.color);
@@ -55,27 +88,39 @@ export default function DropdownContext() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', margin: 'auto' }}>
-      <span style={{ color: 'white', paddingRight: '5px', margin: 'auto' }}>Municipality</span>
-      <Select
-        value={municipalSelected}
-        options={municipal}
-        onChange={handleMunicipalityChange}
-        getOptionLabel={(x) => x.field1}
-        styles={customstyles}
-      />
-      <span
+    <div className="dropdownFilterLayout">
+      <div
         style={{
           color: 'white',
-          paddingLeft: '5px',
-          paddingRight: '5px',
+          fontSize: '0.85rem',
           margin: 'auto',
+          paddingRight: '0.5rem',
+        }}
+      >
+        Municipality
+      </div>
+      <Select
+        placeholder="Select Municipality"
+        value={municipalitySelected}
+        options={initMunicipalBarangay}
+        onChange={handleMunicipalityChange}
+        getOptionLabel={(x: any) => x.municipality}
+        styles={customstyles}
+      />
+      <br />
+      <div
+        style={{
+          color: 'white',
+          fontSize: '0.85rem',
+          margin: 'auto',
+          paddingRight: '0.5rem',
+          paddingLeft: '10px',
         }}
       >
         Barangay
-      </span>
-
+      </div>
       <Select
+        placeholder="Select Barangay"
         value={barangaySelected}
         options={barangayList}
         onChange={handleBarangayChange}
@@ -85,5 +130,3 @@ export default function DropdownContext() {
     </div>
   );
 }
-
-// function

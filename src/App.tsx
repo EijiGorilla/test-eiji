@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react';
-import './App.css';
 import OAuthInfo from '@arcgis/core/identity/OAuthInfo';
 import IdentityManager from '@arcgis/core/identity/IdentityManager';
 import Portal from '@arcgis/core/portal/Portal';
-
-import MapDisplay from './components/MapDisplay';
-import Header from './components/Header';
-import { CalciteShell } from '@esri/calcite-components-react';
+import './App.css';
+import './index.css';
+import '@arcgis/map-components/dist/components/arcgis-map';
+import '@arcgis/map-components/components/arcgis-map';
+import '@arcgis/map-components/components/arcgis-zoom';
+import '@arcgis/map-components/components/arcgis-legend';
 import '@esri/calcite-components/dist/components/calcite-shell';
-import SidePanel from './components/SidePanel';
+import '@esri/calcite-components/dist/calcite/calcite.css';
+import { CalciteShell } from '@esri/calcite-components-react';
+import MapDisplay from './components/MapDisplay';
+import ActionPanel from './components/ActionPanel';
+import Header from './components/Header';
+import MainChart from './components/MainChart';
 import { MyContext } from './contexts/MyContext';
 
 function App() {
@@ -42,11 +48,12 @@ function App() {
   }, []);
 
   const [municipals, setMunicipals] = useState<any>();
+  const [barangays, setBarangays] = useState<any>();
+
   const updateMunicipals = (newMunicipal: any) => {
     setMunicipals(newMunicipal);
   };
 
-  const [barangays, setBarangays] = useState<any>();
   const updateBarangays = (newBarangay: any) => {
     setBarangays(newBarangay);
   };
@@ -54,15 +61,23 @@ function App() {
   return (
     <>
       {loggedInState === true ? (
-        <CalciteShell>
-          {
-            <MyContext value={{ municipals, updateMunicipals, barangays, updateBarangays }}>
+        <div>
+          <CalciteShell>
+            <MyContext
+              value={{
+                municipals,
+                barangays,
+                updateMunicipals,
+                updateBarangays,
+              }}
+            >
+              <ActionPanel />
               <MapDisplay />
-              <SidePanel />
+              <MainChart />
               <Header />
             </MyContext>
-          }
-        </CalciteShell>
+          </CalciteShell>
+        </div>
       ) : (
         <div></div>
       )}
